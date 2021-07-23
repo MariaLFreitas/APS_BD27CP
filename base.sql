@@ -52,9 +52,6 @@ CREATE TYPE public.orders_payment_type_enum AS ENUM (
 ALTER TYPE public.orders_payment_type_enum OWNER TO postgres;
 
 
-ALTER TYPE public.orders_sales_type_enum OWNER TO postgres;
-
---
 -- Name: products_category_enum; Type: TYPE; Schema: public; Owner: postgres
 --
 
