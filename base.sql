@@ -200,51 +200,68 @@ CREATE TABLE public.stock (
     updated_at timestamp without time zone DEFAULT now() NOT NULL
 );
 ALTER TABLE public.stock OWNER TO postgres;
+--
+-- Name: log_stock; Type: TABLE; Schema: public; Owner: postgres
+--
+CREATE TABLE public.log_stock (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    user_name character varying not null,
+    operation CHAR(10) not null,
+    old_record text,
+    new_record text,
+    created_at timestamp without time zone DEFAULT now() NOT NULL
+);
+ALTER TABLE public.log_stock OWNER TO postgres;
+--
+-- Name: log_stock PK_LogStock; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+ALTER TABLE ONLY public.log_stock
+ADD CONSTRAINT "PK_LogStock" PRIMARY KEY (id);
+--
+-- Name: stock PK_Stock; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
 ALTER TABLE ONLY public.stock
 ADD CONSTRAINT "PK_Stock" PRIMARY KEY (id);
 --
--- Name: stock PK_Stock; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: products PK_Products; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 ALTER TABLE ONLY public.products
 ADD CONSTRAINT "PK_Products" PRIMARY KEY (id);
 --
--- Name: order_details PK_Products; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: order_details PK_OrderDetails; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 ALTER TABLE ONLY public.order_details
 ADD CONSTRAINT "PK_OrderDetails" PRIMARY KEY (id);
 --
--- Name: user_tokens PK_OrderDetails; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: user_tokens PK_UserTokens; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 ALTER TABLE ONLY public.user_tokens
 ADD CONSTRAINT "PK_UserTokens" PRIMARY KEY (id);
 --
--- Name: orders PK_UserTokens; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: orders PK_Orders; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 ALTER TABLE ONLY public.orders
 ADD CONSTRAINT "PK_Orders" PRIMARY KEY (id);
 --
--- Name: users PK_a3ffb1c0c8416b9fc6f907b7433; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: users PK_Users; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 ALTER TABLE ONLY public.users
 ADD CONSTRAINT "PK_Users" PRIMARY KEY (id);
 --
--- Name: delivery_points PK_Users; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: delivery_points PK_DeliveryPoints; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 ALTER TABLE ONLY public.delivery_points
 ADD CONSTRAINT "PK_DeliveryPoints" PRIMARY KEY (id);
 --
--- Name: users PK_DeliveryPoints; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: users UQ_CPFUsers; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 ALTER TABLE ONLY public.users
 ADD CONSTRAINT "UQ_CPFUsers" UNIQUE (cpf);
 --
--- Name: users UQ_CPFUsers; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: users UQ_EmailUsers; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 ALTER TABLE ONLY public.users
 ADD CONSTRAINT "UQ_EmailUsers" UNIQUE (email);
---
--- Name: users UQ_EmailUsers; Type: CONSTRAINT; Schema: public; Owner: postgres
---
 CREATE INDEX products_name_search ON public.products USING btree (name);
 --
 -- Name: order_details tg_update_stock; Type: TRIGGER; Schema: public; Owner: postgres
@@ -288,3 +305,105 @@ ADD CONSTRAINT "ProductStock" FOREIGN KEY (product_id) REFERENCES public.product
 --
 -- Name: stock ProductStock; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
+CREATE OR REPLACE FUNCTION public.log_stock_trigger() RETURNS TRIGGER AS $log_stock_trigger$ -- VARIAVEL QUE SERÁ UTILIZADA NA TRIGGER
+DECLARE var_old_record text;
+var_new_record text;
+BEGIN -- VERIFICA SE FOI FEITA ALGUMA ALTERAÇÃO (UPDATE)
+IF (
+    NEW.id IS NOT NULL
+    AND OLD.id IS NOT NULL
+) THEN --TG_OP = 'UPDATE'
+var_old_record = OLD.product_id || ',' || OLD.price || ',' || OLD.batch || ',' || OLD.quantity;
+var_new_record = NEW.product_id || ',' || NEW.price || ',' || NEW.batch || ',' || NEW.quantity;
+INSERT INTO public.log_stock (
+        id,
+        user_name,
+        operation,
+        old_record,
+        new_record,
+        created_at
+    )
+VALUES(
+        uuid_generate_v4(),
+        CURRENT_USER,
+        'update',
+        var_old_record,
+        var_new_record,
+        now()
+    );
+RAISE NOTICE 'update log persist.';
+RETURN NEW;
+END IF;
+-- VERIFICA SE FOI FEITA ALGUMA INSERÇÃO
+IF (
+    NEW.id IS NOT NULL
+    AND OLD.id ISNULL
+) THEN --TG_OP = 'INSERT'
+var_old_record = NULL;
+var_new_record = NEW.product_id || ',' || NEW.price || ',' || NEW.batch || ',' || NEW.quantity;
+INSERT INTO public.log_stock (
+        id,
+        user_name,
+        operation,
+        old_record,
+        new_record,
+        created_at
+    )
+VALUES(
+        uuid_generate_v4(),
+        CURRENT_USER,
+        'insert',
+        var_old_record,
+        var_new_record,
+        now()
+    );
+RAISE NOTICE 'insert log persist.';
+RETURN NEW;
+END IF;
+--VERIFICA SE FOI FEITA ALGUMA DELEÇÃO
+IF (
+    NEW.id ISNULL
+    AND OLD.id IS NOT NULL
+) THEN --TG_OP = 'DELETE'
+var_old_record = OLD.product_id || ',' || OLD.price || ',' || OLD.batch || ',' || OLD.quantity;
+var_new_record = NULL;
+INSERT INTO public.log_stock (
+        id,
+        user_name,
+        operation,
+        old_record,
+        new_record,
+        created_at
+    )
+VALUES(
+        uuid_generate_v4(),
+        CURRENT_USER,
+        'delete',
+        var_old_record,
+        var_new_record,
+        now()
+    );
+RAISE NOTICE 'delete log persist.';
+RETURN OLD;
+END IF;
+END;
+$log_stock_trigger$ LANGUAGE plpgsql;
+CREATE TRIGGER tg_log_stock BEFORE
+INSERT
+    OR
+UPDATE
+    OR DELETE ON public.stock FOR EACH ROW EXECUTE PROCEDURE public.log_stock_trigger();
+-- garante que não seja cadastrado um produto com o mesmo nome no banco
+-- por exemplo: se existir um produto com nome 'mamão' e tentarmos inserir um com o nome 'mamao'
+-- irá disparar um erro
+CREATE OR REPLACE FUNCTION control_duplicate_product_with_same_name_trigger() RETURNS TRIGGER AS $control_duplicate_product_with_same_name_trigger$ BEGIN IF EXISTS(
+        SELECT name
+        FROM public.products
+        WHERE unaccent(name) = unaccent(NEW.name)
+    ) THEN RAISE EXCEPTION 'product already registered.';
+ELSE RETURN NEW;
+END IF;
+END;
+$control_duplicate_product_with_same_name_trigger$ LANGUAGE plpgsql;
+CREATE TRIGGER tg_control_duplicate_product_with_same_name BEFORE
+INSERT ON public.products FOR EACH ROW EXECUTE PROCEDURE public.control_duplicate_product_with_same_name_trigger();
