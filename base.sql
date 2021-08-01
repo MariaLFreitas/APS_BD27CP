@@ -396,7 +396,7 @@ UPDATE
 -- garante que não seja cadastrado um produto com o mesmo nome no banco
 -- por exemplo: se existir um produto com nome 'mamão' e tentarmos inserir um com o nome 'mamao'
 -- irá disparar um erro
-CREATE OR REPLACE FUNCTION control_duplicate_product_with_same_name_trigger() RETURNS TRIGGER AS $control_duplicate_product_with_same_name_trigger$ BEGIN IF EXISTS(
+CREATE OR REPLACE FUNCTION public.control_duplicate_product_with_same_name_trigger() RETURNS TRIGGER AS $control_duplicate_product_with_same_name_trigger$ BEGIN IF EXISTS(
         SELECT name
         FROM public.products
         WHERE unaccent(name) = unaccent(NEW.name)
@@ -407,3 +407,19 @@ END;
 $control_duplicate_product_with_same_name_trigger$ LANGUAGE plpgsql;
 CREATE TRIGGER tg_control_duplicate_product_with_same_name BEFORE
 INSERT ON public.products FOR EACH ROW EXECUTE PROCEDURE public.control_duplicate_product_with_same_name_trigger();
+-- view materializada para ver o total de estoque  de cada produto ---
+CREATE VIEW public.view_products_in_stock as
+select p."name",
+    s.quantity
+FROM public.products p
+    join public.stock s on p.id = s.product_id;
+-- view materializada para ver o total de vendas de cada produto ---
+CREATE MATERIALIZED VIEW public.materialized_view_total_products_sold_report as
+select p."name",
+    (
+        select sum(od2.quantity) as quantity_total_sold
+        from public.order_details od2
+        where p.id = od2.product_id
+    )
+from public.products p
+    join public.order_details od on p.id = od.product_id;
