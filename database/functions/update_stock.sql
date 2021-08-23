@@ -44,3 +44,4 @@ $$;
 ALTER FUNCTION public.update_stock() OWNER TO postgres;
 SET default_tablespace = '';
 SET default_with_oids = false;
+

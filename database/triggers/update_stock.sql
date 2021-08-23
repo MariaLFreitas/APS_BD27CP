@@ -55,4 +55,4 @@ AFTER
 INSERT
     OR DELETE
     OR
-UPDATE ON public.order_details FOR EACH ROW EXECUTE PROCEDURE public.update_stock();
+UPDATE ON public.order_details FOR EACH ROW EXECUTE PROCEDURE public.update_stock(); 

@@ -14,4 +14,4 @@ END;
 $control_duplicate_product_with_same_name_trigger$ LANGUAGE plpgsql;
 
 -- Função SEARCH utilizada criada em \functions\search.sql
--- Trigger utitlizada está criada na pasta \triggers
+-- Trigger utitlizada está criada na pasta \triggers;

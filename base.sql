@@ -19,7 +19,7 @@ COMMENT ON EXTENSION unaccent IS 'text search dictionary that removes accents';
 --
 -- Name: uuid-ossp; Type: EXTENSION; Schema: -; Owner:
 --
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public; 
 --
 -- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner:
 --

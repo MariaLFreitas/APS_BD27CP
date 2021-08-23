@@ -5,4 +5,4 @@ CREATE OR REPLACE FUNCTION public.search(texto varchar) returns VARCHAR as $$
         END;
 $$
 LANGUAGE plpgsql
-RETURNS NULL ON NULL INPUT; -- Retorna NULL caso a entrada seja NULL
+RETURNS NULL ON NULL INPUT; -- Retorna NULL caso a entrada seja NULL;
