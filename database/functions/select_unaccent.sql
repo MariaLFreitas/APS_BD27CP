@@ -1,0 +1,1 @@
+-- função para fazer um select com where, sem levar em consideração acentos 
