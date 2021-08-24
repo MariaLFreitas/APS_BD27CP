@@ -13,3 +13,8 @@ comprado, seu preço, quantidade e desconto se houver.
 unidade, categoria e foto.
 	O Estoque mantém o ID do Produto, preço, lote e quantidade.
 É atualizado a cada Pedido que contenha um de seus itens.
+
+    O Banco gera, através de uma função, uma tabela de auditoria para controle
+do estoque, a tabela: log_stock, contém um ID para a modificação, o nome do
+usuário que a fez, tipo de operação (INSERT, DELETE, UPDATE), a gravação antiga
+quando houver e data em que foi criada.

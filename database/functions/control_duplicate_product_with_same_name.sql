@@ -14,4 +14,14 @@ END;
 $control_duplicate_product_with_same_name_trigger$ LANGUAGE plpgsql;
 
 -- Função SEARCH utilizada criada em \functions\search.sql
--- Trigger utitlizada está criada na pasta \triggers;
+-- Trigger utitlizada está criada na pasta \triggers
+
+-- Exemplo
+insert into products
+values (uuid_generate_v4(),'pão_de_BATATA',null,'box','food',now(),now());
+
+insert into products
+values (uuid_generate_v4(),'pão_de_batatá',null,'box','food',now(),now());
+
+-- ERROR: product already registered.
+--  Where: função PL/pgSQL control_duplicate_product_with_same_name_trigger() linha 5 em RAISE
