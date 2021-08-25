@@ -3,7 +3,7 @@ SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
+SELECT pg_catalog.set_config('search_path', 'public', false);
 SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
@@ -417,19 +417,27 @@ END;
 $control_duplicate_product_with_same_name_trigger$ LANGUAGE plpgsql;
 CREATE TRIGGER tg_control_duplicate_product_with_same_name BEFORE
 INSERT ON public.products FOR EACH ROW EXECUTE PROCEDURE public.control_duplicate_product_with_same_name_trigger();
--- view materializada para ver o total de estoque  de cada produto ---
-CREATE VIEW public.view_products_in_stock as
-select p."name",
-    s.quantity
-FROM public.products p
-    join public.stock s on p.id = s.product_id;
--- view materializada para ver o total de vendas de cada produto ---
-CREATE MATERIALIZED VIEW public.materialized_view_total_products_sold_report as
-select p."name",
+
+-- View para mostrar a quantidade de pedidos retirados por cidade
+CREATE or REPLACE VIEW view_orders_by_city AS
+select d.city as Cidade, count(o.delivery_point_id) as qtd_pedidos
+from public.orders o join public.delivery_points d ON o.delivery_point_id=d.id
+group by d.city
+order by qtd_pedidos desc;
+
+-- View para selecionar produtos com menos de 75% do estoque máximo (100k)
+CREATE or REPLACE VIEW view_products_quarter_stock AS
+SELECT p.name AS Produto, s.quantity AS Quantidade
+FROM public.products p JOIN public.stock s ON s.product_id=p.id
+WHERE s.quantity<25000
+ORDER BY s.quantity ASC;
+
+-- View para selecionar a quantidade total vendida de cada produto
+CREATE or REPLACE VIEW public.view_total_products_sold_report as
+select p.name as NomeProd,
     (
         select sum(od2.quantity) as quantity_total_sold
         from public.order_details od2
         where p.id = od2.product_id
-    )
-from public.products p
-    join public.order_details od on p.id = od.product_id;
+    ) as QTD_Vendida
+from public.products p join public.order_details od on p.id = od.product_id;
