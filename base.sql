@@ -19,7 +19,7 @@ COMMENT ON EXTENSION unaccent IS 'text search dictionary that removes accents';
 --
 -- Name: uuid-ossp; Type: EXTENSION; Schema: -; Owner:
 --
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public; 
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
 --
 -- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner:
 --
@@ -441,3 +441,27 @@ select p.name as NomeProd,
         where p.id = od2.product_id
     ) as QTD_Vendida
 from public.products p join public.order_details od on p.id = od.product_id;
+
+
+CREATE INDEX idxProductName ON public.products using gin(to_tsvector('portuguese', name));
+analyze;
+-- Na query da busca:
+explain analyze SELECT * FROM public.products p WHERE to_tsvector('portuguese', p.name) @@ to_tsquery('portuguese', 'jose');
+
+
+CREATE index idxValuePaymentType ON public.orders (value)  WHERE payment_type = 'credit_card';
+
+analyze;
+
+explain analyze SELECT *
+  FROM orders
+ WHERE value = 11 AND  payment_type= 'credit_card';
+
+
+CREATE INDEX idxNotFood ON products (category)
+WHERE NOT (category = 'food');
+
+explain analyze select * from products p  where category = 'clothing';
+
+-- Suponhamos que temos uma tabela com muitos registros onde a categoria é do tipo food
+-- logo podemos particionar isso com um index que exclua os registros do tipo food;
