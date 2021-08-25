@@ -393,13 +393,23 @@ INSERT
     OR
 UPDATE
     OR DELETE ON public.stock FOR EACH ROW EXECUTE PROCEDURE public.log_stock_trigger();
+
+-- Função que realiza uma pesquisa entre dois textos sem considerar letras maíusculas ou acentos
+CREATE OR REPLACE FUNCTION public.search(texto varchar) returns VARCHAR as $$
+        BEGIN
+                RETURN upper(unaccent(texto));
+        END;
+$$
+LANGUAGE plpgsql
+RETURNS NULL ON NULL INPUT; -- Retorna NULL caso a entrada seja NULL;
+
 -- garante que não seja cadastrado um produto com o mesmo nome no banco
 -- por exemplo: se existir um produto com nome 'mamão' e tentarmos inserir um com o nome 'mamao'
 -- irá disparar um erro
 CREATE OR REPLACE FUNCTION public.control_duplicate_product_with_same_name_trigger() RETURNS TRIGGER AS $control_duplicate_product_with_same_name_trigger$ BEGIN IF EXISTS(
         SELECT name
         FROM public.products
-        WHERE unaccent(name) = unaccent(NEW.name)
+        WHERE search(name) = search(NEW.name) -- compara o nome de produtos na tabela com o produto a ser inserido com a função search
     ) THEN RAISE EXCEPTION 'product already registered.';
 ELSE RETURN NEW;
 END IF;

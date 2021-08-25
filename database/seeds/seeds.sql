@@ -490,25 +490,17 @@ INSERT INTO public.products (id,"name",image,unit,category,created_at,updated_at
  ('ee6a1289-2248-41c8-b3e1-82d456104cb6'::uuid,'shorts',NULL,'un','clothing',now(),now());
 
  -- Criando novamente a função
-CREATE OR REPLACE FUNCTION public.control_duplicate_product_with_same_name_trigger()
- RETURNS trigger
- LANGUAGE plpgsql
-AS $function$ BEGIN IF EXISTS(
+CREATE OR REPLACE FUNCTION public.control_duplicate_product_with_same_name_trigger() RETURNS TRIGGER AS $control_duplicate_product_with_same_name_trigger$ BEGIN IF EXISTS(
         SELECT name
         FROM public.products
-        WHERE unaccent(name) = unaccent(NEW.name)
+        WHERE search(name) = search(NEW.name) -- compara o nome de produtos na tabela com o produto a ser inserido com a função search
     ) THEN RAISE EXCEPTION 'product already registered.';
 ELSE RETURN NEW;
 END IF;
 END;
-<<<<<<< HEAD
 $control_duplicate_product_with_same_name_trigger$ LANGUAGE plpgsql;
 CREATE TRIGGER tg_control_duplicate_product_with_same_name BEFORE
-INSERT ON public.products FOR EACH ROW EXECUTE PROCEDURE public.control_duplicate_product_with_same_name_trigger(); 
-=======
-$function$
-;
->>>>>>> bdb0a6519b7a2838f94a82bc383e4688d1b2c00f
+INSERT ON public.products FOR EACH ROW EXECUTE PROCEDURE public.control_duplicate_product_with_same_name_trigger();
 --
 ------------------------ END PRODUCTS ------------------------
 --
