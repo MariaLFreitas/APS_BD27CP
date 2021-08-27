@@ -434,34 +434,24 @@ ORDER BY s.quantity ASC;
 
 -- View para selecionar a quantidade total vendida de cada produto
 CREATE or REPLACE VIEW public.view_total_products_sold_report as
-select p.name as NomeProd,
+select distinct p.name as NomeProd,
     (
         select sum(od2.quantity) as quantity_total_sold
         from public.order_details od2
         where p.id = od2.product_id
     ) as QTD_Vendida
-from public.products p join public.order_details od on p.id = od.product_id;
+from public.products p join public.order_details od on p.id = od.product_id
+order by QTD_Vendida DESC;
 
-
+-- Indice criado para melhorar as buscas em nome de produtos
 CREATE INDEX idxProductName ON public.products using gin(to_tsvector('portuguese', name));
 analyze;
--- Na query da busca:
-explain analyze SELECT * FROM public.products p WHERE to_tsvector('portuguese', p.name) @@ to_tsquery('portuguese', 'jose');
 
-
+-- Indice criado para otimizar buscas em um método de pagamento especifico, nesse caso, cartao de credito
 CREATE index idxValuePaymentType ON public.orders (value)  WHERE payment_type = 'credit_card';
-
 analyze;
-
-explain analyze SELECT *
-  FROM orders
- WHERE value = 11 AND  payment_type= 'credit_card';
-
-
-CREATE INDEX idxNotFood ON products (category)
-WHERE NOT (category = 'food');
-
-explain analyze select * from products p  where category = 'clothing';
 
 -- Suponhamos que temos uma tabela com muitos registros onde a categoria é do tipo food
 -- logo podemos particionar isso com um index que exclua os registros do tipo food;
+CREATE INDEX idxNotFood ON products (category)
+WHERE NOT (category = 'food');
