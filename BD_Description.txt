@@ -1,3 +1,10 @@
+Integrantes do Grupo:
+	Daniel Augusto Muller
+	Gabriel Prando
+	Maria Luiza de Freitas	
+	
+
+Descrição do Banco:
 	Em nosso Banco de Dados, escolhemos uma aplicação para
 controle básico de uma loja com produtos em estoque.
 
